@@ -12,7 +12,9 @@
 
 ## 本机启动（Docker + .NET 8）
 
-需要 Docker、.NET 8 SDK、Python 3 和 Bash。云环境已经安装的 SDK 位于 `/workspace/tools/dotnet`，若不在 PATH 中：
+项目运行目标为 .NET 8；`global.json` 允许使用 .NET 8 或更高版本的 SDK 编译，包括 .NET 9。SDK 是编译工具，运行应用仍需安装 .NET 8 / ASP.NET Core 8 运行时。Visual Studio 也需支持所选 SDK 版本。
+
+需要 Docker、.NET 8 或更高版本的 SDK、.NET 8 / ASP.NET Core 8 运行时、Python 3 和 Bash。云环境已经安装的 SDK 位于 `/workspace/tools/dotnet`，若不在 PATH 中：
 
 ```bash
 export PATH="/workspace/tools/dotnet:$PATH"
