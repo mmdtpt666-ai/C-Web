@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f8f8f6"><title>映刻 · 发现值得看的</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23ed493b'/%3E%3Cpath d='M16 11L30 20 16 29Z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/app.css">
+  <script defer src="/vendor/vue.global.prod.js"></script><script defer src="/app.js"></script>
+</head>
+<body>
+<!-- Vue 就绪前隐藏模板；用户输入以文本插值展示，不将其作为 HTML 注入。 -->
+<div id="app" v-cloak>
+  <div v-if="booting" class="loading">映刻 · 正在加载…</div>
+  <template v-else-if="!user">
+    <!-- 未登录页面：注册和登录共享表单，认证状态由服务端 Cookie 决定。 -->
+    <main class="auth-page">
+      <section class="auth-story">
+        <a class="brand" href="/"><span class="brand-icon">▶</span>映刻<span class="brand-en">YINK</span></a>
+        <div class="story-copy"><span class="eyebrow">A LITTLE CURIOSITY. A BIGGER WORLD.</span><h1>让好奇心，<br>带你看见更多。</h1><p>生活的灵感，藏在每一次发现里。<br>在映刻，遇见让你愿意停留的好内容。</p></div>
+        <div class="story-art"><img src="/media/mountains.svg" alt="群山与落日的插画"><span class="art-caption">放慢一点，世界还有很多值得看见。 ↗</span></div>
+        <span class="story-footer">记录热爱 · 分享日常 · 发现世界</span>
+      </section>
+      <section class="auth-panel"><span class="auth-top">你的下一次发现，从这里开始</span><div class="auth-form-wrap">
+        <span class="tiny-label">WELCOME TO YINK</span><h2>{{registering ? '开启你的映刻之旅' : '很高兴，再见到你。'}}</h2><p class="muted">{{registering ? '创建账号，收藏生活里的每一份灵感。' : '登录账号，继续探索你的热爱。'}}</p>
+        <form @submit.prevent="submitAuth">
+          <label v-if="registering">昵称<input v-model="form.name" autocomplete="nickname" maxlength="40" placeholder="怎么称呼你？" required></label>
+          <label>邮箱地址<input v-model="form.email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required></label>
+          <label>密码<div class="password-input"><input aria-label="密码" v-model="form.password" :type="showPassword ? 'text' : 'password'" :autocomplete="registering ? 'new-password' : 'current-password'" :minlength="registering ? 10 : 1" maxlength="128" :placeholder="registering ? '至少 10 个字符' : '输入你的密码'" required><button type="button" @click="showPassword=!showPassword" :aria-label="showPassword ? '隐藏密码' : '显示密码'">{{showPassword ? '隐藏' : '显示'}}</button></div></label>
+          <p v-if="authMessage" :class="['form-message', authSuccess ? 'success' : 'error']" role="status">{{authMessage}}</p>
+          <button class="primary submit" :disabled="busy">{{busy ? '请稍候…' : registering ? '创建账号' : '登 录'}}<span aria-hidden="true">→</span></button>
+        </form>
+        <p class="switch-auth">{{registering ? '已经有账号？' : '第一次来到映刻？'}}<button @click="toggleAuth">{{registering ? '去登录' : '注册账号'}} ↗</button></p>
+        <div class="auth-note"><span>◈</span> 好内容，值得被看见。</div>
+      </div><footer>© {{new Date().getFullYear()}} 映刻 YINK · 保持好奇，保持热爱</footer></section>
+    </main>
+  </template>
+  <template v-else>
+    <!-- 已登录页面：目录接口仍需服务端授权，隐藏界面不代替权限校验。 -->
+    <header class="topbar"><div class="brand-group"><button class="icon-button menu-button" @click="sidebarOpen=!sidebarOpen" aria-label="展开或收起侧栏">☰</button><a class="brand" href="/"><span class="brand-icon">▶</span>映刻<span class="brand-en">YINK</span></a></div>
+      <form class="search" @submit.prevent="search=query.trim()"><input v-model="query" placeholder="搜索视频、创作者，发现更多灵感" aria-label="搜索视频"><button aria-label="搜索" type="submit">⌕</button></form>
+      <div class="account"><span class="welcome">你好，{{user.name}}</span><button class="avatar" @click="accountOpen=!accountOpen" :aria-expanded="accountOpen" aria-label="账号菜单">{{user.name?.slice(0,1)}}</button><div v-if="accountOpen" class="account-menu"><strong>{{user.name}}</strong><small>{{user.email}}</small><button @click="logout" :disabled="busy">退出登录 ↗</button></div></div>
+    </header>
+    <aside :class="['sidebar',{open:sidebarOpen}]"><span class="nav-label">发现你的热爱</span><button v-for="item in navItems" :key="item.name" :class="['nav-item',{active:section===item.name}]" @click="section=item.name;sidebarOpen=false"><span>{{item.icon}}</span>{{item.name}}</button><div class="nav-divider"></div><span class="nav-label">为你而来</span><button class="nav-item" :class="{active:section==='稍后观看'}" @click="section='稍后观看';sidebarOpen=false"><span>◷</span>稍后观看 <small>{{saved.length || ''}}</small></button><button class="nav-item" :class="{active:section==='观看记录'}" @click="section='观看记录';sidebarOpen=false"><span>↺</span>观看记录</button><div class="sidebar-card"><span>✳</span><strong>生活不止一种打开方式</strong><p>从一个视频开始，<br>发现新的可能。</p></div><div class="sidebar-bottom">映刻 YINK<br><span>每一份热爱，都有回响。</span></div></aside>
+    <main class="feed">
+      <section v-if="section==='首页' && !search" class="hero"><div><span class="eyebrow">YOUR DAILY DOSE OF INSPIRATION</span><h1>好内容，<span>不期而遇。</span></h1><p>跳出日常的惯性，发现值得停留的每一刻。</p><button @click="category='全部';play(videos[0])">开启今日灵感 <span>↗</span></button></div><div class="hero-art"><div class="sun"></div><div class="hill back"></div><div class="hill front"></div><span class="hero-stamp">STAY<br>CURIOUS ✳</span></div></section>
+      <div class="feed-heading"><div><span class="tiny-label">{{section==='首页' ? 'PICKED FOR YOU' : 'YOUR COLLECTION'}}</span><h2>{{search ? '搜索：'+search : section==='首页' ? '为你推荐' : section}}<span class="heading-dot"></span></h2></div><span class="feed-subtitle">{{search ? filteredVideos.length+' 个结果' : '每一次点击，都是一次新的发现'}}</span></div>
+      <div class="categories"><button v-for="tag in categories" :class="{selected:category===tag}" @click="category=tag">{{tag}}</button><button v-if="search" @click="search='';query=''">清除搜索 ×</button></div>
+      <div v-if="feedError" class="empty-state" role="alert">{{feedError}}<button @click="loadVideos">重试</button></div>
+      <div v-else-if="loadingVideos" class="empty-state">正在寻找好内容…</div>
+      <div v-else-if="!filteredVideos.length" class="empty-state"><span>⌕</span><h3>这里还没有视频</h3><p>{{section==='稍后观看' ? '点击视频卡片上的 +，把感兴趣的内容留到稍后。' : '试试其他关键词，或者看看其他分类。'}}</p></div>
+      <section v-else class="video-grid" aria-label="视频列表"><article v-for="video in filteredVideos" :key="video.id" class="video-card"><div class="thumbnail"><button class="cover-button" @click="play(video)" :aria-label="'播放 '+video.title"><img :src="'/media/'+video.cover+'.svg'" :alt="video.title" loading="lazy"><span class="play-indicator">▶</span><span class="duration">{{video.duration}}</span></button><button class="save-button" @click="toggleSaved(video.id)" :aria-label="saved.includes(video.id)?'取消稍后观看':'稍后观看'" :title="saved.includes(video.id)?'取消稍后观看':'稍后观看'">{{saved.includes(video.id) ? '✓' : '+'}}</button></div><div class="video-info"><span :class="['channel-avatar',video.cover]">{{video.channel.slice(0,1)}}</span><div><button class="video-title" @click="play(video)">{{video.title}}</button><p>{{video.channel}} <span class="verified">✓</span></p><small>{{video.views}} · {{video.age}}</small></div></div></article></section>
+      <footer class="feed-footer">— 保持好奇，下一份灵感就在前方 —</footer>
+    </main>
+    <div v-if="activeVideo" class="modal-backdrop" @click.self="activeVideo=null"><section class="player-dialog" role="dialog" aria-modal="true" :aria-label="activeVideo.title" @keydown.esc="activeVideo=null"><div class="player-top"><span>映刻放映室</span><button @click="activeVideo=null" ref="closePlayer" aria-label="关闭播放器">×</button></div><video controls autoplay playsinline src="/media/flower.mp4"></video><div class="player-description"><h2>{{activeVideo.title}}</h2><p>{{activeVideo.channel}} · {{activeVideo.views}}</p><p class="sample-note">界面演示视频 · 当前所有卡片均播放同一段公共领域花卉短片（来源 MDN）。标题、时长和观看量为示例数据。</p><button class="primary" @click="toggleSaved(activeVideo.id)">{{saved.includes(activeVideo.id) ? '✓ 已加入稍后观看' : '+ 稍后观看'}}</button></div></section></div>
+  </template>
+  <div v-if="toast" class="toast" role="status">{{toast}}</div>
+</div>
+</body></html>
